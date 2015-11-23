@@ -36,9 +36,79 @@ export default ChartComponent.extend(FloatingTooltipMixin,
 
   finishedData: Ember.computed.alias('sortedData'),
 
+  // Checks xDomain to see if there is negative data
+  hasNegativeData: Ember.computed('xDomain', function(){
+    return (this.get('xDomain')[0] < 0);
+  }),
+
+  // Checks xDomain to see if there is positive data
+  hasPositiveData: Ember.computed('xDomain', function(){
+    return (this.get('xDomain')[1] > 0);
+  }),
+
   // ----------------------------------------------------------------------------
   // Layout
   // ----------------------------------------------------------------------------
+
+  /**
+  * @override
+  * Overrides values in addon/mixins/axis-titles.js
+  */
+  xAxisPositionX: Ember.computed('graphicWidth', 'labelWidthOffset', function(){
+    return (this.get('hasNegativeData') && this.get('hasPositiveData')) ? this.get('xScale')(0) : (this.get('graphicWidth') / 2);
+  }),
+
+  /**
+  * @override
+  * X Axis Titles needs some extra padding or else it will intersect with the lowest bar
+  * TO-DO: Change the 20px padding to be a variable that can be referenced elsewhere
+  */
+  xAxisPositionY: Ember.computed('graphicBottom', 'axisPadding', function(){
+    return this.get('graphicBottom') + 15;
+  }),
+
+  /**
+  * @override
+  */
+  yAxisPositionX: Ember.computed('graphicBottom', 'axisPadding', function(){
+    return -(this.get('graphicHeight') / 2);
+  }),
+
+  /**
+  * @override
+  */
+  yAxisPositionY: Ember.computed('labelWidthOffset', function(){
+    return -(this.get('labelWidthOffset'));
+  }),
+
+  /**
+  * @override
+  * Horizontal Bar Charts require that marginLeft be dependent on 'horizontalMargin'
+  * Otherwise, without override will result in marginLeft ~= 0 (axis location will always be flush on the left)
+  */
+  marginLeft: Ember.computed('hasAxisTitles', 'horizontalMarginLeft', 'horizontalMargin', function(){
+     return this.get('hasAxisTitles') ? this.get('horizontalMarginLeft') + this.get('horizontalMargin'): this.get('horizontalMargin');
+  }),
+
+  // marginLeft: Ember.computed('hasAxisTitles', function() {
+  //   //alert(this.get('graphicLeft'));
+  //   return 10*this.getGroupingPadding();
+  // }),
+  // marginRight: 0,
+
+  /**
+  * @override
+  * Anchoring using 'middle' looks better visually than using 'start'
+  */
+  updateYAxisTitle: function(){
+    this.get('yAxisTitle')
+    .text(this.get('yAxisTitleDisplayValue'))
+    .style('text-anchor', 'middle').attr({
+      x: this.get('yAxisPositionX'),
+      y: this.get('yAxisPositionY'),
+    }).attr("transform", this.get('yAxisTransform'))
+    .attr("dy", "1em");
+  },
 
   minOuterHeight: Ember.computed('numBars', 'minBarThickness', 'marginTop', 'marginBottom', function() {
     const minBarThickness = this.get('minBarThickness');
@@ -75,6 +145,22 @@ export default ChartComponent.extend(FloatingTooltipMixin,
 
   horizontalMargin: Ember.computed.readOnly('labelWidth'),
 
+  // horizontalMargin: Ember.computed('finishedData', function() {
+  //    //alert(this.get('graphicLeft'));
+  //    //alert(this.getGroupingPadding());
+  //    //return 10*this.getGroupingPadding();
+
+  //    if (this.get('hasPositiveData') && this.get('hasNegativeData')) {
+  //      return this.get('labelWidth');
+  //    } else if (this.get('hasPositiveData')) {
+  //      return 11*this.getGroupingPadding();
+  //    } else {
+  //      alert('gothere');
+  //      return 11*this.getValuePadding();
+  //    }
+  // }),
+
+
   // ----------------------------------------------------------------------------
   // Graphics Properties
   // ----------------------------------------------------------------------------
@@ -86,22 +172,65 @@ export default ChartComponent.extend(FloatingTooltipMixin,
     var values = this.get('finishedData').map(function(d) { return d.value; });
     var minValue = d3.min(values);
     var maxValue = d3.max(values);
-    if (minValue < 0) {
-      // Balance negative and positive axes if we have negative values
+
+    //Set the Domain to use up the chart space fficiently
+    if (minValue < 0 && maxValue > 0) {
       var absMax = Math.max(-minValue, maxValue);
       return [-absMax, absMax];
+    } else if (minValue < 0 && maxValue <= 0) {
+      return [minValue, 0];
     } else {
-      // Only positive values domain
       return [0, maxValue];
     }
   }),
 
-  // Scale to map value to horizontal length of bar
-  xScale: Ember.computed('width', 'xDomain', function() {
+
+  // Calculates the padding for grouping labels
+  // Accounts for the largest label in the chart
+  getGroupingPadding: function() {
+    //alert("here");
+    var maxGroupingLength = d3.max(this.get('finishedData').map(function(d) { return d.label.length;  }));
+    var groupingPadding = 0;
+    if (maxGroupingLength < 25) {
+      groupingPadding = maxGroupingLength * Math.pow(0.987, maxGroupingLength);
+    } else if (maxGroupingLength < 50) {
+      groupingPadding = maxGroupingLength * Math.pow(0.99, maxGroupingLength)-1;
+    } else {
+      groupingPadding = maxGroupingLength * Math.pow(0.993, maxGroupingLength)-3;
+    }
+    return groupingPadding;
+  },
+
+  // Calculates the padding for value labels
+  // Defaults to rounding to the hundreths place
+  getValuePadding: function(val) {
+    return (Math.round(100 * val) / 100).toString().length;
+  },
+
+  // Returns the appropriate scaled X values
+  // Accounts for value and grouping label paddings on the left and the right.
+  xScaleFunc: function(x) {
+    var fontPixelSize = 11;
+    var minBuffer = 7;
+    var groupingPadding = this.getGroupingPadding();
+    var valuePadding = this.getValuePadding(x);
+
+    var padding = fontPixelSize * Math.max((this.get('hasPositiveData') ? valuePadding : groupingPadding), minBuffer);
+    var finalWidth = this.get('outerWidth') - this.get('labelWidth') - padding;
+
+    // if (x != 0) {
+    //   alert("finalWidth: " + finalWidth);
+    // }
     return d3.scale.linear()
-      .domain(this.get('xDomain'))
-      .range([0, this.get('width')])
-      .nice();
+    .domain(this.get('xDomain'))
+    .range([0, finalWidth])
+    .nice()(x);
+  },
+
+  // Scale to map value to horizontal length of bar
+  // Keeping this name since all the drawing functions in this file use it
+  xScale: Ember.computed('width', 'xDomain', function() {
+    return (x) => this.xScaleFunc(x);
   }),
 
   // Scale to map bar index to its horizontal position
@@ -306,7 +435,8 @@ export default ChartComponent.extend(FloatingTooltipMixin,
       .text((d) => this.get('formatLabelFunction')(d.value))
       .attr(this.get('valueLabelAttrs'));
 
-    var labelWidth = this.get('labelWidth');
+    //Ensures that groupingLabels won't get truncated when changing the labelWidthMultiplier
+    var labelWidth = this.get('hasNegativeData') ? this.get('outerWidth') * 0.35 : this.get('labelWidth');
     var labelTrimmer = LabelTrimmer.create({
       getLabelSize: () => labelWidth,
       getLabelText: (d) => d.label
