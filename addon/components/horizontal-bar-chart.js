@@ -146,11 +146,12 @@ export default ChartComponent.extend(FloatingTooltipMixin,
   horizontalMargin: Ember.computed.readOnly('labelWidth'),
 
   // horizontalMargin: Ember.computed('finishedData', function() {
-  //    //alert(this.get('graphicLeft'));
-  //    //alert(this.getGroupingPadding());
-  //    //return 10*this.getGroupingPadding();
+  //    // alert(this.get('graphicLeft'));
+  //    // alert(this.getGroupingPadding());
+  //    // return 10*this.getGroupingPadding();
 
   //    if (this.get('hasPositiveData') && this.get('hasNegativeData')) {
+  //      alert('what');
   //      return this.get('labelWidth');
   //    } else if (this.get('hasPositiveData')) {
   //      return 11*this.getGroupingPadding();
@@ -216,11 +217,19 @@ export default ChartComponent.extend(FloatingTooltipMixin,
     var valuePadding = this.getValuePadding(x);
 
     var padding = fontPixelSize * Math.max((this.get('hasPositiveData') ? valuePadding : groupingPadding), minBuffer);
-    var finalWidth = this.get('outerWidth') - this.get('labelWidth') - padding;
 
-    // if (x != 0) {
-    //   alert("finalWidth: " + finalWidth);
+    var finalWidth = this.get('outerWidth') - this.get('horizontalMargin') - padding;
+    // var finalWidth = 0;
+    // if (this.get('hasPositiveData') && this.get('hasNegativeData')) {
+    //   alert('here');
+    //   finalWidth = this.get('outerWidth') - this.get('horizontalMargin') / this.get('labelWidthMultiplier') * .15 - padding;
+    // } else {
+    //   finalWidth = this.get('outerWidth') - this.get('horizontalMargin') - padding;
     // }
+
+    // // if (x == 0) {
+    // //   alert("OuterWidth: "+ this.get('outerWidth') +"\n" + "HorizMargin: " + this.get('horizontalMargin') + "\n" + "Padding: " + padding);
+    // // }
     return d3.scale.linear()
     .domain(this.get('xDomain'))
     .range([0, finalWidth])
