@@ -34,6 +34,9 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
   // the top / bottom when your labels are large or the chart is very small
   minimumTopBottomMargin: 0,
 
+  // Allows the user to configure number of decimal places in data
+  numDecimalPlaces: 0,
+
   // ----------------------------------------------------------------------------
   // Data
   // ----------------------------------------------------------------------------
@@ -61,7 +64,7 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
   }),
 
   // Valid data points that have been sorted by selectedSortType
-  sortedData: Ember.computed('filteredData', 'sortKey', function() {
+  sortedData: Ember.computed('filteredData', 'sortKey', 'numDecimalPlaces', function() {
     var data = this.get('filteredData');
     var total = data.reduce(function(p, child) {
       return child.value + p;
@@ -75,7 +78,7 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
         color: d.color,
         label: d.label,
         value: d.value,
-        percent: d3.round(100.0 * d.value / total)
+        percent: d3.round(100.0 * d.value / total, this.get('numDecimalPlaces'))
       };
     });
 
@@ -84,7 +87,7 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
 
   // This takes the sorted slices that have percents calculated and returns
   // sorted slices that obey the "other" slice aggregation rules
-  sortedDataWithOther: Ember.computed('sortedData', 'maxNumberOfSlices', 'minSlicePercent', function() {
+  sortedDataWithOther: Ember.computed('sortedData', 'maxNumberOfSlices', 'minSlicePercent', 'numDecimalPlaces', function() {
     var lastItem, overflowSlices, slicesLeft;
 
     var data = _.cloneDeep(this.get('sortedData')).reverse();
@@ -129,6 +132,7 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
       maxNumberOfSlices -= 1;
     }
 
+
     // Next, continue putting slices in other slice if there are too many
     // take instead of first see https://lodash.com/docs#take
     // drop instead of rest
@@ -144,15 +148,23 @@ const PieChartComponent = ChartComponent.extend(FloatingTooltipMixin,
       slicesLeft = _.take(slicesLeft, maxNumberOfSlices);
     }
 
+    debugger;
     // only push other slice if there is more than one other item
     if (otherItems.length === 1) {
+      //debugger;
       slicesLeft.push(otherItems[0]);
     } else if (otherSlice.percent > 0) {
+      //debugger;
       slicesLeft.push(otherSlice);
+      //slicesLeft.splice(1, 0, otherSlice);
     }
 
+    otherSlice.percent = d3.round(otherSlice.percent, this.get('numDecimalPlaces'));
+
     // make slices appear in descending order
-    return slicesLeft.reverse();
+    return slicesLeft.sort(function(a, b) {
+      return b.percent - a.percent;
+    }).reverse();
   }),
 
   otherData: Ember.computed('sortedDataWithOther.[]', 'sortFunction', function() {

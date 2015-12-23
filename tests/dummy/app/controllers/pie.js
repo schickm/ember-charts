@@ -14,6 +14,9 @@ import zero from '../models/single_group/zero';
 import zeroes from '../models/single_group/zeroes';
 import sum_to_zero from '../models/single_group/sum_to_zero';
 import bad_range from '../models/single_group/bad_range';
+import experiment_range from '../models/single_group/experiment_range';
+import experiment_range2 from '../models/single_group/experiment_range2';
+
 
 export default SlideController.extend({
 
@@ -25,6 +28,7 @@ export default SlideController.extend({
   minSlicePercent: 2,
   maxRadius: 250,
   labelWidthMultiplier: 0.25,
+  numDecimalPlaces: 0,
 
   // ---------
   // Data Selection
@@ -51,7 +55,9 @@ export default SlideController.extend({
 	    zero: zero,
 	    zeroes: zeroes,
 	    sum_to_zero: sum_to_zero,
-	    bad_range: bad_range
+	    bad_range: bad_range,
+      experiment_range: experiment_range,
+      experiment_range2: experiment_range2
     };
   }),
 
