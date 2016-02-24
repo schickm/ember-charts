@@ -16,7 +16,8 @@ var scatterContent = {
     {
       "group": "Energy",
       "xValue": 0.017,
-      "yValue": 0.03
+      "yValue": 0.03,
+      "color": "#010101"
     },
     {
       "group": "Industrial Metals",
@@ -105,3 +106,18 @@ test('Test domain without domain padding', function(assert) {
   assert.equal(component.get('xScale')(0.017), 497.65);
   assert.equal(component.get('yScale')(0.03), 193.815);
 });
+
+test('Test legend color override', function(assert) {
+  var component = this.subject(scatterContent);
+
+  assert.equal(component.get('legendItems')[0].fill, '#010101', 'the fill color is overriden');
+  assert.equal(component.get('legendItems')[0].stroke, '#010101', 'the stroke color is overriden');
+});
+
+test('Test data point color override', function(assert) {
+  var component = this.subject(scatterContent);
+  var firstDataPoint = component.get('data')[0];
+  assert.equal(component.get('pointAttrs').fill(firstDataPoint,0), '#010101', 'the fill color is overriden');
+  assert.equal(component.get('pointAttrs').stroke(firstDataPoint,0), '#010101', 'the stroke color is overriden');
+});
+
