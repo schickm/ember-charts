@@ -2111,6 +2111,8 @@ define('ember-charts/components/scatter-chart', ['exports', 'module', 'ember', '
       var _this3 = this;
 
       return function (d, i) {
+        // If there is an overriding color assigned to the group, we use that
+        // color.
         if (!_Ember['default'].isNone(d.color)) {
           return d.color;
         }
@@ -2145,6 +2147,9 @@ define('ember-charts/components/scatter-chart', ['exports', 'module', 'ember', '
       var legendData = this.get('groupedData').map(function (d, i) {
         var name = d[0].group;
         var value = d.length === 1 ? d[0] : null;
+        // Get the color of the group. Because they are in the same group, they
+        // should share the same color, so we only need to get the color of the
+        // first object and pass to the function
         var color = getGroupColor(d[0], i);
         return {
           label: name,
@@ -5908,12 +5913,16 @@ define('ember-charts/mixins/time-series-labeler', ['exports', 'module', 'ember']
     })
   });
 });
-define('ember-charts/templates/components/chart-component', ['exports', 'module'], function (exports, module) {
+define('ember-charts/templates/components/chart-component', ['exports', 'module', 'ember'], function (exports, module, _ember) {
   'use strict';
 
-  module.exports = Ember.HTMLBars.template(function anonymous(Handlebars, depth0, helpers, partials, data) {
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Ember = _interopRequireDefault(_ember);
+
+  module.exports = _Ember['default'].Handlebars.template(function anonymous(Handlebars, depth0, helpers, partials, data) {
     this.compilerInfo = [4, '>= 1.0.0'];
-    helpers = this.merge(helpers, Ember.Handlebars.helpers);data = data || {};
+    helpers = this.merge(helpers, _Ember['default'].Handlebars.helpers);data = data || {};
     var buffer = '',
         escapeExpression = this.escapeExpression;
 
